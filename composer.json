@@ -1,0 +1,29 @@
+{
+    "name": "n5s/wpstarter",
+    "type": "wpstarter-extension",
+    "authors": [
+        {
+            "name": "Nicolas Lemoine",
+            "email": "nico@niconico.fr"
+        }
+    ],
+    "require": {
+        "wecodemore/wpstarter": "^3.0.0-beta.13",
+        "roots/wordpress": "^6.1",
+        "symfony/dotenv": "^5.3 || ^6.0"
+    },
+    "extra": {
+        "wpstarter-autoload": {
+            "psr-4": {
+                "n5s\\WpStarter\\": "src/"
+            }
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "roots/wordpress-core-installer": true,
+            "composer/installers": true,
+            "wecodemore/wpstarter": true
+        }
+    }
+}
