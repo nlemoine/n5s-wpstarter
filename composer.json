@@ -10,7 +10,10 @@
     "require": {
         "wecodemore/wpstarter": "^3.0.0-beta.13",
         "roots/wordpress": "^6.1",
-        "symfony/dotenv": "^5.3 || ^6.0"
+        "symfony/dotenv": "^5.3 || ^6.0 || ^7.0"
+    },
+    "require-dev": {
+        "symplify/easy-coding-standard": "^12"
     },
     "extra": {
         "wpstarter-autoload": {
@@ -25,5 +28,9 @@
             "composer/installers": true,
             "wecodemore/wpstarter": true
         }
+    },
+    "scripts": {
+        "cs": "ecs check",
+        "cs:fix": "ecs check --fix"
     }
 }

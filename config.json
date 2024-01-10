@@ -1,6 +1,6 @@
 {
     "env-bootstrap-dir": "./config",
     "custom-steps": {
-        "custom-wp-config": "n5s\\WpStarter\\WpConfigStep"
+        "n5s-wp-config": "n5s\\WpStarter\\WpConfigStep"
     }
 }
