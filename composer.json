@@ -9,8 +9,7 @@
     ],
     "require": {
         "wecodemore/wpstarter": "^3.0.0-beta.13",
-        "roots/wordpress": "^6.1",
-        "symfony/dotenv": "^5.0 || ^6.0 || ^7.0"
+        "roots/wordpress": "^6.1"
     },
     "require-dev": {
         "symplify/easy-coding-standard": "^12"
