@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/nlemoine/n5s-wpstarter/compare/v1.1.0...v1.1.1) (2024-01-10)
+
+
+### Bug Fixes
+
+* symfony/dotenv version ([3b8a915](https://github.com/nlemoine/n5s-wpstarter/commit/3b8a9155df33aa62ee32c4673790dfa0c21ccfd0))
+
 ## [1.1.0](https://github.com/nlemoine/n5s-wpstarter/compare/v1.0.0...v1.1.0) (2024-01-10)
 
 
