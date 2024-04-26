@@ -8,7 +8,7 @@
         }
     ],
     "require": {
-        "wecodemore/wpstarter": "^3.0.0-beta.13",
+        "wecodemore/wpstarter": "3.0.0-beta.13",
         "roots/wordpress": "^6.1"
     },
     "require-dev": {
