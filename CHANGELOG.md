@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.3](https://github.com/nlemoine/n5s-wpstarter/compare/v1.1.2...v1.1.3) (2024-04-26)
+
+
+### Bug Fixes
+
+* use wpstarter fixed version ([03a86bb](https://github.com/nlemoine/n5s-wpstarter/commit/03a86bb4764a784d83f945c9bd54333a010378f7))
+
+
+### Miscellaneous Chores
+
+* delete composer.lock ([8ff845c](https://github.com/nlemoine/n5s-wpstarter/commit/8ff845c50bd413fb58ebe92976294f38a7042816))
+
 ## [1.1.2](https://github.com/nlemoine/n5s-wpstarter/compare/v1.1.1...v1.1.2) (2024-01-10)
 
 
