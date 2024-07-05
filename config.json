@@ -1,5 +1,9 @@
 {
     "env-bootstrap-dir": "./config",
+    "check-vcs-ignore": false,
+    "prevent-overwrite": [
+        "wp-cli.yml"
+    ],
     "custom-steps": {
         "n5s-wp-config": "n5s\\WpStarter\\WpConfigStep"
     }
