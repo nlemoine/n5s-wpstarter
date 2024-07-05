@@ -4,11 +4,11 @@
     "authors": [
         {
             "name": "Nicolas Lemoine",
-            "email": "nico@niconico.fr"
+            "email": "nico@n5s.dev"
         }
     ],
     "require": {
-        "wecodemore/wpstarter": "3.0.0-beta.13",
+        "wecodemore/wpstarter": "dev-wpstarter-next",
         "roots/wordpress": "^6.1"
     },
     "require-dev": {
