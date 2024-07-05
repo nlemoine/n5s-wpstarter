@@ -194,7 +194,7 @@ PHP;
     {
         // @codingStandardsIgnoreStart
         $skipCache = <<<PHP
-add_filter('wpstarter.skip-cache-env', static fn (\$skip, \$envName) => \$skip || \$envName !== 'development', 10, 2);
+add_filter('wpstarter.skip-cache-env', static fn (\$skip, \$envName) => \$skip || \$envName === 'development', 10, 2);
 PHP;
         // @codingStandardsIgnoreEnd
 
