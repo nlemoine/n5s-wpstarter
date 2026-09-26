@@ -1,0 +1,52 @@
+{
+    "name": "n5s/wpstarter",
+    "description": "Composer plugin that injects n5s's WPStarter defaults",
+    "type": "composer-plugin",
+    "authors": [
+        {
+            "name": "Nicolas Lemoine",
+            "email": "nico@n5s.dev"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "composer-plugin-api": "^2.0",
+        "symfony/dotenv": "^6.4 || ^7.0 || ^8.0",
+        "wecodemore/wpstarter": "^3.0"
+    },
+    "require-dev": {
+        "composer/composer": "^2.0",
+        "ergebnis/composer-normalize": "^2.54",
+        "phpunit/phpunit": "^11.5",
+        "symfony/process": "^6.4 || ^7.0 || ^8.0",
+        "symplify/easy-coding-standard": "^13.3"
+    },
+    "suggest": {
+        "roots/wordpress": "^6.0 || ^7.0 — required at runtime; declared here as suggest so this plugin installs before WordPress core extraction and can inject the wordpress-install-dir default in time"
+    },
+    "autoload": {
+        "psr-4": {
+            "n5s\\WpStarter\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "n5s\\WpStarter\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true,
+            "ergebnis/composer-normalize": true,
+            "wecodemore/wpstarter": true
+        }
+    },
+    "extra": {
+        "class": "n5s\\WpStarter\\Plugin"
+    },
+    "scripts": {
+        "cs": "ecs check",
+        "cs:fix": "ecs check --fix",
+        "test": "phpunit"
+    }
+}
