@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/nlemoine/n5s-wpstarter/compare/v1.0.0...v1.0.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* throw on env loading failure instead of logging and exiting ([95420cf](https://github.com/nlemoine/n5s-wpstarter/commit/95420cfdfda95cbf22c11073a77d72195313b6f3))
+
 ## 1.0.0 (2026-09-26)
 
 
