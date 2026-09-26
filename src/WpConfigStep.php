@@ -104,9 +104,9 @@ final class WpConfigStep implements FileCreationStepInterface, BlockingStep
      * Append Symfony Dotenv loading to the AUTOLOAD section, before ENV_VARIABLES.
      *
      * With the cache on, the files are only read when the dump is absent. A missing,
-     * unreadable or malformed file ends the request with a generic message: nothing of
-     * Symfony's own message reaches the browser (it quotes the offending line, sometimes a
-     * secret); the server log gets the exception class and the place.
+     * unreadable or malformed file ends the request with an uncaught exception naming the
+     * exception class and the place, never Symfony's own message, which quotes the offending
+     * line (sometimes a secret); PHP's error handling does the rest.
      */
     private function appendDotenvLoading(Config $config, Paths $paths, bool $cacheEnv): void
     {
@@ -131,18 +131,12 @@ try {
         ->loadEnv(__DIR__ . {$pathLiteral}, 'WP_ENVIRONMENT_TYPE', 'production', []);
 } catch (\\Throwable \$e) {
     // Any failure, not only Dotenv's own exceptions (a `\$(...)` value without symfony/process
-    // throws a plain LogicException). Symfony's message can quote the offending line, and a
-    // secret with it: the server log gets the class and the place, nobody else gets more.
+    // throws a plain LogicException). Rethrown as an uncaught exception, so PHP logs it,
+    // displays it or not, answers 500 and exits non-zero as configured. Without the original
+    // as previous: PHP prints the whole chain, and Symfony's message quotes the offending
+    // line, a secret at times. Class and place are enough to find it.
     \$where = \$e instanceof \\Symfony\\Component\\Dotenv\\Exception\\FormatException ? ' at ' . \$e->getContext()->getPath() . ':' . \$e->getContext()->getLineno() : '';
-    error_log('wp-config.php: environment files could not be loaded (' . get_class(\$e) . \$where . ')');
-    \$message = 'Environment files could not be loaded: see the server error log. If .env is missing, copy .env.example to .env and fill in the values.';
-    if (PHP_SAPI === 'cli') {
-        // exit() with a string exits with 0: WP-CLI and deploy scripts would read it as success.
-        fwrite(STDERR, \$message . PHP_EOL);
-        exit(1);
-    }
-    http_response_code(500);
-    exit(\$message);
+    throw new \\RuntimeException('Environment files could not be loaded (' . get_class(\$e) . \$where . '). If .env is missing, copy .env.example to .env and fill in the values.');
 }
 PHP;
 

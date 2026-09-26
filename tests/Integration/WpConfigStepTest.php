@@ -189,7 +189,7 @@ final class WpConfigStepTest extends TestCase
         self::assertSame('wp', $request['constants']['DB_NAME']);
     }
 
-    public function testABrokenEnvFileFailsTheCliWithoutQuotingIt(): void
+    public function testABrokenEnvFileEndsTheRequestWithoutQuotingIt(): void
     {
         $project = FakeProject::create([
             '.env' => self::ENV . "WP_ENVIRONMENT_TYPE=development\nTHIS LINE IS BROKEN\n",
@@ -198,10 +198,12 @@ final class WpConfigStepTest extends TestCase
 
         $process = $project->requestProcess();
         $process->run();
+        $output = $process->getOutput() . $process->getErrorOutput();
 
-        self::assertSame(1, $process->getExitCode());
-        self::assertStringContainsString('Environment files could not be loaded', $process->getErrorOutput());
-        self::assertStringNotContainsString('BROKEN', $process->getOutput() . $process->getErrorOutput(), "Symfony's message, which quotes the line, stays in the log");
+        self::assertNotSame(0, $process->getExitCode());
+        self::assertStringContainsString('Uncaught RuntimeException: Environment files could not be loaded', $output);
+        self::assertStringContainsString('FormatException at', $output, 'the class and the place of the failure');
+        self::assertStringNotContainsString('BROKEN', $output, "Symfony's message, which quotes the line, is not the one thrown");
     }
 
     public function testTheDefaultDbDirIsTheProjectVarDbWhateverTheLayout(): void
