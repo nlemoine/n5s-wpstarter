@@ -1,6 +1,7 @@
 {
     "name": "n5s/wpstarter",
     "description": "Composer plugin that injects n5s's WPStarter defaults",
+    "license": "MIT",
     "type": "composer-plugin",
     "authors": [
         {
