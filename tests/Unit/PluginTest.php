@@ -54,17 +54,111 @@ final class PluginTest extends TestCase
         }
     }
 
-    public function testLeavesTheWholeLayoutToAProjectThatDefinesAnyOfIt(): void
+    public function testPutsTheContentDirNextToAProjectWordPressDir(): void
     {
         $extra = $this->activate([
-            'wordpress-install-dir' => 'wp',
+            'wordpress-install-dir' => 'web/wp',
         ]);
 
+        self::assertSame('web/wp', $extra['wordpress-install-dir']);
+        self::assertSame('web/app', $extra['wordpress-content-dir']);
+        self::assertSame(
+            ['web/app/mu-plugins/{$name}', 'web/app/plugins/{$name}', 'web/app/themes/{$name}'],
+            array_keys($extra['installer-paths'])
+        );
+    }
+
+    public function testPutsTheWordPressDirAndInstallerPathsWithAProjectContentDir(): void
+    {
+        $extra = $this->activate([
+            'wordpress-content-dir' => 'wp-content/',
+        ]);
+
+        self::assertSame('wp-content/', $extra['wordpress-content-dir']);
         self::assertSame('wp', $extra['wordpress-install-dir']);
-        self::assertArrayNotHasKey('wordpress-content-dir', $extra);
-        self::assertArrayNotHasKey('installer-paths', $extra);
-        self::assertStringContainsString('layout', $this->io->getOutput());
-        self::assertStringContainsString('installer-paths', $this->io->getOutput());
+        self::assertSame(
+            ['wp-content/mu-plugins/{$name}', 'wp-content/plugins/{$name}', 'wp-content/themes/{$name}'],
+            array_keys($extra['installer-paths'])
+        );
+    }
+
+    public function testProjectInstallerPathsComeFirstAndKeepTheirValues(): void
+    {
+        $extra = $this->activate([
+            'installer-paths' => [
+                'public/app/custom/{$name}' => ['vendor/special', 'type:wordpress-plugin'],
+            ],
+        ]);
+
+        self::assertSame(
+            [
+                'public/app/custom/{$name}' => ['vendor/special', 'type:wordpress-plugin'],
+                'public/app/mu-plugins/{$name}' => ['type:wordpress-muplugin'],
+                'public/app/plugins/{$name}' => ['type:wordpress-plugin'],
+                'public/app/themes/{$name}' => ['type:wordpress-theme'],
+            ],
+            $extra['installer-paths']
+        );
+        self::assertSame('public/app', $extra['wordpress-content-dir']);
+        self::assertSame('public/wp', $extra['wordpress-install-dir']);
+    }
+
+    public function testAppendsTheDefaultTypeToAPathTheProjectAlsoDeclares(): void
+    {
+        $extra = $this->activate([
+            'installer-paths' => [
+                'public/app/mu-plugins/{$name}' => ['cedaro/satispress'],
+            ],
+        ]);
+
+        self::assertSame(
+            ['cedaro/satispress', 'type:wordpress-muplugin'],
+            $extra['installer-paths']['public/app/mu-plugins/{$name}']
+        );
+    }
+
+    public function testDoesNotDuplicateATypeTheProjectAlreadyLists(): void
+    {
+        $extra = $this->activate([
+            'installer-paths' => [
+                'public/app/mu-plugins/{$name}' => ['type:wordpress-muplugin', 'cedaro/satispress'],
+            ],
+        ]);
+
+        self::assertSame(
+            ['type:wordpress-muplugin', 'cedaro/satispress'],
+            $extra['installer-paths']['public/app/mu-plugins/{$name}']
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string, mixed}>
+     */
+    public static function rejectedLayoutDirs(): iterable
+    {
+        yield 'absolute content dir' => ['wordpress-content-dir', '/wp-content'];
+        yield 'absolute install dir' => ['wordpress-install-dir', '/srv/wp'];
+        yield 'windows drive' => ['wordpress-content-dir', 'C:/site/wp-content'];
+        yield 'backslash root' => ['wordpress-install-dir', '\\wp'];
+        yield 'empty' => ['wordpress-install-dir', ''];
+        yield 'slash only' => ['wordpress-content-dir', '/'];
+        yield 'not a string' => ['wordpress-content-dir', ['public/app']];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('rejectedLayoutDirs')]
+    public function testRejectsALayoutDirThatIsNotARelativePath(string $key, mixed $value): void
+    {
+        $extra = $this->activate([
+            $key => $value,
+        ]);
+
+        self::assertSame([
+            $key => $value,
+        ], array_diff_key($extra, [
+            'wpstarter' => true,
+        ]), 'nothing derived, value kept');
+        self::assertStringContainsString($key, $this->io->getOutput());
+        self::assertStringContainsString('relative to the project root', $this->io->getOutput());
     }
 
     public function testUserWpStarterSettingsWin(): void
