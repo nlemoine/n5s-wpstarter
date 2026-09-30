@@ -16,9 +16,10 @@ use WeCodeMore\WpStarter\Util\WpConfigSectionEditor;
 /**
  * Decorates WP Starter's build-wp-config step: the native step writes wp-config.php from its
  * template as usual, then this one patches the file. Registered under the native step's name so
- * it takes its place: one step, so the file is never left unpatched (a run of the native step
- * alone, an in-place deploy between two steps) and never patched twice (`prevent-overwrite`,
- * `skip-steps`, a run of this step alone).
+ * it takes its place: one step, so the file is not left unpatched between two steps (an in-place
+ * deploy) and never patched twice (`prevent-overwrite`, `skip-steps`, a run of this step alone).
+ * One exception: `composer wpstarter --skip-custom` drops every custom step, so the native one
+ * runs alone and leaves wp-config.php unpatched (no Dotenv loading, no DB_DIR/FQDBDIR).
  *
  * The patch replaces WP Starter's env file loading with Symfony Dotenv's loadEnv(), and its env
  * cache writer with one that dumps every variable Symfony loaded, without putenv().
@@ -30,14 +31,19 @@ use WeCodeMore\WpStarter\Util\WpConfigSectionEditor;
  *   .env.local                        — overrides of this checkout
  *   .env.{WP_ENVIRONMENT_TYPE}        — values of one environment type
  *   .env.{WP_ENVIRONMENT_TYPE}.local  — overrides of this checkout for that type
+ * With WP_ENVIRONMENT_TYPE=local the chain stops after .env.local, which serves as both the
+ * checkout overrides and the type's values: Symfony never reads .env.local.local.
  * WPSTARTER_ENV_LOADED then keeps the bridge's own loading inert: load() returns at once, and
  * loadAppended() still parses .env.{WP_ENVIRONMENT_TYPE} but finds every variable set and
  * writes nothing. The bridge only defines the constants (setupConstants()).
  *
  * WP_ENVIRONMENT_TYPE is the one key for the environment type, with WordPress' values
- * (local, development, staging, production; WP Starter maps its aliases). WP_ENV and
- * WORDPRESS_ENV, which WP Starter also reads, are not part of the contract: set, they would
- * drive the bridge but not the file chain.
+ * (local, development, staging, production; WP Starter maps its aliases), in lowercase. The
+ * file chain uses the value as is and the bridge lowercases it: with `Production`, Symfony would
+ * find no .env.Production on a case-sensitive filesystem while the bridge would read
+ * .env.production with putenv(). Such a request fails instead. WP_ENV and WORDPRESS_ENV, which
+ * WP Starter also reads, are not part of the contract: set, they would drive the bridge but not
+ * the file chain.
  *
  * Caching: see replaceEnvCache(). The dump is stale by design: delete it (or run
  * `composer wpstarter flush-env-cache`) after changing the .env files.
@@ -138,6 +144,12 @@ try {
     \$where = \$e instanceof \\Symfony\\Component\\Dotenv\\Exception\\FormatException ? ' at ' . \$e->getContext()->getPath() . ':' . \$e->getContext()->getLineno() : '';
     throw new \\RuntimeException('Environment files could not be loaded (' . get_class(\$e) . \$where . '). If .env is missing, copy .env.example to .env and fill in the values.');
 }
+// Symfony picks .env.{type} with the value as is, WP Starter lowercases it: they must agree.
+\$envTypeRaw = \$_SERVER['WP_ENVIRONMENT_TYPE'] ?? \$_ENV['WP_ENVIRONMENT_TYPE'] ?? '';
+if (is_string(\$envTypeRaw) && \$envTypeRaw !== strtolower(\$envTypeRaw)) {
+    throw new \\RuntimeException('WP_ENVIRONMENT_TYPE must be lowercase, got ' . var_export(\$envTypeRaw, true) . '.');
+}
+unset(\$envTypeRaw);
 PHP;
 
         if (! $cacheEnv) {
@@ -263,10 +275,15 @@ if (!$envLoader->hasCachedValues() && isset($_SERVER['SYMFONY_DOTENV_VARS']) && 
             // dump. A random name, created exclusively ('x'): two writers never share a file,
             // not even threads of one process or hosts sharing the directory.
             $tmp = $file . '.' . bin2hex(random_bytes(8)) . '.tmp';
+            // The handle is closed whatever happens: an open file cannot be unlinked on Windows,
+            // and the leftover would hold the secrets.
             $handle = @fopen($tmp, 'xb');
-            $written = $handle !== false && @fwrite($handle, $content) === strlen($content) && @fclose($handle);
-            if (!$written || !@rename($tmp, $file)) {
-                @unlink($tmp);
+            if ($handle !== false) {
+                $written = @fwrite($handle, $content) === strlen($content);
+                $written = @fclose($handle) && $written;
+                if (!$written || !@rename($tmp, $file)) {
+                    @unlink($tmp);
+                }
             }
         }
     );
