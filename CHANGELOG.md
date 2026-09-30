@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/nlemoine/n5s-wpstarter/compare/v1.0.1...v1.1.0) (2026-09-30)
+
+
+### Features
+
+* Derive the layout from the content dir ([b9e42e1](https://github.com/nlemoine/n5s-wpstarter/commit/b9e42e1916ee5bc4d82c43edcb9a963c5ec997dc))
+
+
+### Bug Fixes
+
+* Reject an uppercase WP_ENVIRONMENT_TYPE and close the dump handle ([d648ff4](https://github.com/nlemoine/n5s-wpstarter/commit/d648ff4586765f88c8954e281780de93af93b1e4))
+
 ## [1.0.1](https://github.com/nlemoine/n5s-wpstarter/compare/v1.0.0...v1.0.1) (2026-09-26)
 
 
