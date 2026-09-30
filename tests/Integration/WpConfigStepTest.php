@@ -104,6 +104,23 @@ final class WpConfigStepTest extends TestCase
         self::assertNull($request['lastError']);
     }
 
+    public function testADumpDeletedButStillInOpcacheIsNotUsed(): void
+    {
+        if (! \function_exists('opcache_compile_file')) {
+            self::markTestSkipped('OPcache is not loaded.');
+        }
+        $project = $this->project('production');
+        $project->request();
+        self::assertStringContainsString("define('DB_NAME', 'wp');", $project->read(self::DUMP));
+        $project->write('.env.local', "DB_NAME=fresh\n");
+
+        $request = $project->requestWithDeletedFileInOpcache(self::DUMP);
+
+        self::assertSame('fresh', $request['constants']['DB_NAME'], 'the files are loaded, not the dump OPcache still serves');
+        self::assertNull($request['lastError']);
+        self::assertStringContainsString("define('DB_NAME', 'fresh');", $project->read(self::DUMP), 'the dump is written again');
+    }
+
     public function testAProcessSpawnedByComposerWritesNoDump(): void
     {
         $project = $this->project('production');
@@ -204,6 +221,35 @@ final class WpConfigStepTest extends TestCase
         self::assertStringContainsString('Uncaught RuntimeException: Environment files could not be loaded', $output);
         self::assertStringContainsString('FormatException at', $output, 'the class and the place of the failure');
         self::assertStringNotContainsString('BROKEN', $output, "Symfony's message, which quotes the line, is not the one thrown");
+    }
+
+    public function testAnUppercaseEnvironmentTypeEndsTheRequest(): void
+    {
+        $project = FakeProject::create([
+            '.env' => self::ENV . "WP_ENVIRONMENT_TYPE=Production\n",
+            '.env.production' => "SOME_KEY=production\n",
+        ]);
+        $this->runStep($project);
+
+        $process = $project->requestProcess();
+        $process->run();
+        $output = $process->getOutput() . $process->getErrorOutput();
+
+        self::assertNotSame(0, $process->getExitCode());
+        self::assertStringContainsString("Uncaught RuntimeException: WP_ENVIRONMENT_TYPE must be lowercase, got 'Production'.", $output);
+        self::assertFalse($project->has(self::DUMP));
+    }
+
+    public function testTheLocalEnvironmentReadsDotEnvLocalButNotDotEnvLocalLocal(): void
+    {
+        $project = $this->project('local', [
+            '.env.local' => "DB_NAME=local\n",
+            '.env.local.local' => "DB_NAME=never\n",
+        ]);
+
+        $request = $project->request();
+
+        self::assertSame('local', $request['constants']['DB_NAME']);
     }
 
     public function testTheDefaultDbDirIsTheProjectVarDbWhateverTheLayout(): void

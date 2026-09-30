@@ -162,6 +162,48 @@ final class FakeProject
         );
     }
 
+    /**
+     * Same request, under OPcache with `enable_file_override` on and `validate_timestamps` off,
+     * right after the given file (the env cache dump) was cached by OPcache then deleted.
+     *
+     * @return array{constants: array<string, mixed>, env: array<string, mixed>, server: array<string, mixed>, getenv: array<string, mixed>, lastError: ?string}
+     */
+    public function requestWithDeletedFileInOpcache(string $relative): array
+    {
+        $process = new Process(
+            [
+                PHP_BINARY,
+                '-d', 'variables_order=GPCS',
+                '-d', 'opcache.enable=1',
+                '-d', 'opcache.enable_cli=1',
+                '-d', 'opcache.enable_file_override=1',
+                '-d', 'opcache.validate_timestamps=0',
+                // Otherwise a file changed less than 2 seconds ago is not cached.
+                '-d', 'opcache.file_update_protection=0',
+                __DIR__ . '/opcache-request.php',
+                $this->wpConfigPath(),
+                $this->path($relative),
+            ],
+            $this->root,
+            [
+                'COMPOSER_BINARY' => false,
+                'SYMFONY_DOTENV_VARS' => false,
+            ],
+        );
+        $process->run();
+        if ($process->getExitCode() === 3) {
+            throw new \PHPUnit\Framework\SkippedWithMessageException($process->getErrorOutput());
+        }
+        if (! $process->isSuccessful()) {
+            throw new \Symfony\Component\Process\Exception\ProcessFailedException($process);
+        }
+
+        $output = json_decode($process->getOutput(), true, 512, JSON_THROW_ON_ERROR);
+        \assert(\is_array($output));
+
+        return $output;
+    }
+
     private static function pluginPhpStub(): string
     {
         return <<<'PHP'
