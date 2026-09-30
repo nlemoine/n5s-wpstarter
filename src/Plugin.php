@@ -11,16 +11,21 @@ use Composer\Plugin\PluginInterface;
 final class Plugin implements PluginInterface
 {
     /**
-     * The layout: injected as a whole, or not at all when the project defines any of it.
+     * The layout hangs on one dir: the content dir. The WordPress dir sits next to it, and the
+     * default installer paths go under it.
      */
-    private const LAYOUT = [
-        'installer-paths' => [
-            'public/app/mu-plugins/{$name}' => ['type:wordpress-muplugin'],
-            'public/app/plugins/{$name}' => ['type:wordpress-plugin'],
-            'public/app/themes/{$name}' => ['type:wordpress-theme'],
-        ],
-        'wordpress-content-dir' => 'public/app',
-        'wordpress-install-dir' => 'public/wp',
+    private const CONTENT_DIR = 'public/app';
+
+    private const WP_DIR_NAME = 'wp';
+
+    private const CONTENT_DIR_NAME = 'app';
+
+    private const LAYOUT_DIRS = ['wordpress-install-dir', 'wordpress-content-dir'];
+
+    private const INSTALLER_PATHS = [
+        'mu-plugins' => 'type:wordpress-muplugin',
+        'plugins' => 'type:wordpress-plugin',
+        'themes' => 'type:wordpress-theme',
     ];
 
     private const WPSTARTER_DEFAULTS = [
@@ -63,27 +68,85 @@ final class Plugin implements PluginInterface
     }
 
     /**
+     * Fills in the layout from what the project defines, so the parts never disagree:
+     * - content dir: the project's, else `app` next to the project's WordPress dir,
+     *   else public/app;
+     * - WordPress dir: the project's, else `wp` next to the content dir (WP Starter wants
+     *   both to share a parent);
+     * - installer paths: the project's first (composer/installers takes the first match),
+     *   then mu-plugins, plugins and themes under the content dir. On a path the project also
+     *   declares, the default type is appended to the project's list, so a project only
+     *   lists the packages it adds.
+     *
+     * A dir that is not a non-empty path relative to the project root (absolute, empty, not a
+     * string) is rejected: nothing is derived from it, the layout is left as the project wrote
+     * it, and a warning names it. Derived from `/app`, the installer paths would be absolute
+     * and composer/installers would write outside the project.
+     *
      * @param array<string, mixed> $extra
      * @return array<string, mixed>
      */
     private function injectLayout(array $extra, IOInterface $io): array
     {
-        $defined = array_intersect_key(self::LAYOUT, $extra);
-        if ($defined === []) {
-            return $extra + self::LAYOUT;
+        $rejected = array_filter(
+            self::LAYOUT_DIRS,
+            fn (string $key): bool => array_key_exists($key, $extra) && ! $this->isRelativeDir($extra[$key])
+        );
+        if ($rejected !== []) {
+            $io->writeError(sprintf(
+                '<warning>n5s/wpstarter: %s must be a non-empty path relative to the project root, so no layout is injected.</warning>',
+                implode(', ', $rejected)
+            ));
+
+            return $extra;
         }
 
-        // A layout is one whole: partial defaults would mix two of them (S-07 of the review).
-        $missing = array_keys(array_diff_key(self::LAYOUT, $extra));
-        if ($missing !== []) {
-            $io->writeError(sprintf(
-                '<warning>n5s/wpstarter: the project defines part of the layout (%s), so none of it is injected; %s must be set too.</warning>',
-                implode(', ', array_keys($defined)),
-                implode(', ', $missing)
-            ));
+        $wpDir = $this->dirValue($extra, 'wordpress-install-dir');
+        $contentDir = $this->dirValue($extra, 'wordpress-content-dir')
+            ?? ($wpDir !== null ? $this->sibling($wpDir, self::CONTENT_DIR_NAME) : self::CONTENT_DIR);
+
+        $extra['wordpress-content-dir'] ??= $contentDir;
+        $extra['wordpress-install-dir'] ??= $this->sibling($contentDir, self::WP_DIR_NAME);
+
+        $installerPaths = $extra['installer-paths'] ?? [];
+        if (! is_array($installerPaths)) {
+            return $extra;
         }
+
+        foreach (self::INSTALLER_PATHS as $dir => $type) {
+            $path = "{$contentDir}/{$dir}/{\$name}";
+            $current = $installerPaths[$path] ?? [];
+            if (is_array($current) && ! in_array($type, $current, true)) {
+                $installerPaths[$path] = [...$current, $type];
+            }
+        }
+        $extra['installer-paths'] = $installerPaths;
 
         return $extra;
+    }
+
+    /**
+     * @param array<string, mixed> $extra
+     */
+    private function dirValue(array $extra, string $key): ?string
+    {
+        $value = $extra[$key] ?? null;
+
+        return is_string($value) ? rtrim($value, '/') : null;
+    }
+
+    private function isRelativeDir(mixed $value): bool
+    {
+        return is_string($value)
+            && trim($value, '/\\') !== ''
+            && preg_match('~^([/\\\\]|[a-zA-Z]:)~', $value) !== 1;
+    }
+
+    private function sibling(string $dir, string $name): string
+    {
+        $parent = dirname($dir);
+
+        return $parent === '.' ? $name : "{$parent}/{$name}";
     }
 
     /**
