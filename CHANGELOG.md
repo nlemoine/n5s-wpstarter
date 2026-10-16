@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/nlemoine/n5s-wpstarter/compare/v1.1.0...v1.1.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* Update symfony/dotenv version constraint to allow 7.4 ([0c7f6e5](https://github.com/nlemoine/n5s-wpstarter/commit/0c7f6e508fba1a03a8ca761cf6cad9b034b7c748))
+
 ## [1.1.0](https://github.com/nlemoine/n5s-wpstarter/compare/v1.0.1...v1.1.0) (2026-09-30)
 
 
