@@ -12,7 +12,7 @@
     "require": {
         "php": ">=8.2",
         "composer-plugin-api": "^2.0",
-        "symfony/dotenv": "^6.4 || ^7.0 || ^8.0",
+        "symfony/dotenv": "^6.4 || ^7.4",
         "wecodemore/wpstarter": "^3.0"
     },
     "require-dev": {
